@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xmlns:p="http://www.springframework.org/schema/p"
+             xmlns="http://www.springframework.org/schema/security"
+             xsi:schemaLocation="http://www.springframework.org/schema/security 
+                http://www.springframework.org/schema/security/spring-security.xsd 
+		http://www.springframework.org/schema/beans 
+                http://www.springframework.org/schema/beans/spring-beans.xsd 
+		http://www.springframework.org/schema/context 
+                http://www.springframework.org/schema/context/spring-context.xsd">
+    
+    <!--[ use-expressions="true" ] is used to activate expression use i.e "hasRole"-->
+    
+    <http auto-config="true" use-expressions="true">
+        <intercept-url pattern="/login.html" access="permitAll" requires-channel="https" />
+        <intercept-url pattern="/loginFailed.html" access="permitAll" requires-channel="https"/>
+        <intercept-url pattern="/logout.html" access="permitAll" requires-channel="https"/>
+        <intercept-url pattern="/403.html" access="permitAll" requires-channel="https" />
+        <!--<intercept-url pattern="/405.html" access="permitAll" requires-channel="https" />-->
+        <!--Mark "and" condition below-->
+        <!--<intercept-url pattern="/**" access="hasRole('ROLE_USER') and hasRole('ROLE_ADMIN')"/>-->
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')" requires-channel="https"/>
+        <form-login login-page="/login.html" authentication-failure-url="/loginFailed.html" />
+        <logout logout-success-url="/logout.html" />
+        <access-denied-handler error-page="/403.html" />
+        
+        <!--NOT working because i think more than one "access-denied-handler" not allowed -->
+        <!--<access-denied-handler error-page="/405.html" />-->
+        
+        <!--Important-->
+        <port-mappings>
+            <port-mapping http="8086" https="8443"/>
+        </port-mappings>
+        
+        <session-management session-authentication-strategy-ref="sessionAuthenticationStrategy"/>
+        <custom-filter position="CONCURRENT_SESSION_FILTER" ref="concurrencyFilter" />
+       
+    </http>
+    
+    <beans:bean id="sessionAuthenticationStrategy" class="org.springframework.security.web.authentication.session.ConcurrentSessionControlStrategy">
+        <beans:constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+        <beans:property name="maximumSessions" value="1" />
+        <beans:property name="exceptionIfMaximumExceeded" value="true" />
+    </beans:bean>
+    <beans:bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+    <beans:bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">
+        <beans:property name="sessionRegistry" ref="sessionRegistry" />
+        <beans:property name="expiredUrl" value="/login.html" />
+    </beans:bean>
+    
+    <authentication-manager>
+        <authentication-provider>
+            <password-encoder hash="md5"/>
+            
+            <jdbc-user-service data-source-ref="dataSource"
+                               users-by-username-query=
+                   "select username,password, enabled from users where username=?"
+                               authorities-by-username-query=
+		    "SELECT username, role FROM users inner join authorities on user_id=user_id_fk
+                         inner join role on role_id=role_id_fk where username=?" />           
+            
+        </authentication-provider>
+    </authentication-manager>
+    
+    
+    <!--    <beans:bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <beans:property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        <beans:property name="url" value="jdbc:myssql://localhost:3306/fitnessTracker"/>
+        <beans:property name="username" value="root"/>
+        <beans:property name="password" value="mindfire"/>
+    </beans:bean>-->
+   
+</beans:beans>

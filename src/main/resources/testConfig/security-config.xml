@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:context="http://www.springframework.org/schema/context"
+             xmlns:p="http://www.springframework.org/schema/p"
+             xmlns="http://www.springframework.org/schema/security"
+             xsi:schemaLocation="http://www.springframework.org/schema/security 
+                http://www.springframework.org/schema/security/spring-security.xsd 
+		http://www.springframework.org/schema/beans 
+                http://www.springframework.org/schema/beans/spring-beans.xsd 
+		http://www.springframework.org/schema/context 
+                http://www.springframework.org/schema/context/spring-context.xsd">
+    
+    <!--[ use-expressions="true" ] is used to activate expression use i.e "hasRole"-->
+    
+    <http auto-config="false" entry-point-ref="loginUrlAuthenticationEntryPoint" use-expressions="true">
+        <intercept-url pattern="/login.html" access="permitAll" requires-channel="https" />
+        <intercept-url pattern="/loginFailed.html" access="permitAll" requires-channel="https"/>
+        <intercept-url pattern="/logout.html" access="permitAll" requires-channel="https"/>
+        <intercept-url pattern="/403.html" access="permitAll" requires-channel="https" />
+        <!--<intercept-url pattern="/405.html" access="permitAll" requires-channel="https" />-->
+        <!--Mark "and" condition below-->
+        <!--<intercept-url pattern="/**" access="hasRole('ROLE_USER') and hasRole('ROLE_ADMIN')"/>-->
+        <intercept-url pattern="/**" access="hasRole('ROLE_USER')" requires-channel="https"/>
+        <!--        <form-login login-page="/login.html" authentication-failure-url="/loginFailed.html" />
+        <logout logout-success-url="/logout.html" />-->
+        <access-denied-handler error-page="/403.html" />
+        
+        <!--NOT working because i think more than one "access-denied-handler" not allowed -->
+        <!--<access-denied-handler error-page="/405.html" />-->
+        
+        <!--Important-->
+        <port-mappings>
+            <port-mapping http="8086" https="8443"/>
+        </port-mappings>
+        
+        <custom-filter position="FORM_LOGIN_FILTER" ref="languageFilter" />
+        <logout />
+        
+<!--            <remember-me 
+        token-validity-seconds="1209600"
+	remember-me-parameter="remember-me" 
+	data-source-ref="dataSource" />-->
+       
+    </http>
+    
+<!--    <beans:bean id="tokenRepository" class="org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl">
+        <beans:property name="dataSource" ref="dataSource"/>
+        <beans:property name="createTableOnStartup" value="false"/>
+    </beans:bean>
+ 
+    <beans:bean id="rememberMeService" class="org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices">
+        <beans:property name="userDetailsService" ref="myUserDetailsService"/>
+        <beans:property name="tokenRepository" ref="tokenRepository"/>
+    </beans:bean>-->
+    
+    
+    
+    
+    <beans:bean id="languageFilter"
+                    class="com.pluralsight.filter.ExUsernamePasswordAuthenticationFilter">
+        <beans:property name="authenticationManager" ref="authenticationManager" />
+        <beans:property name="authenticationFailureHandler"
+                                ref="failureHandler" />
+    </beans:bean>
+    
+    <beans:bean id="loginUrlAuthenticationEntryPoint"
+                class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <beans:property name="loginFormUrl" value="/login.html" />
+    </beans:bean>
+    
+	<beans:bean id="failureHandler"
+		class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<beans:property name="defaultFailureUrl" value="/loginFailed.html" />
+	</beans:bean>
+
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider user-service-ref="myUserDetailsService">
+			<password-encoder hash="md5" /> 
+		</authentication-provider>
+	</authentication-manager>
+
+	<beans:bean id="myUserDetailsService" class="com.pluralsight.service.MyUserDetailsService" />
+    
+    
+<!--    <authentication-manager>
+        <authentication-provider>
+            <password-encoder hash="md5"/>
+            
+            <jdbc-user-service data-source-ref="dataSource"
+                               users-by-username-query=
+                   "select username,password, enabled from users where username=?"
+                               authorities-by-username-query=
+		    "SELECT username, role FROM users inner join authorities on user_id=user_id_fk
+                         inner join role on role_id=role_id_fk where username=?" />           
+            
+        </authentication-provider>
+    </authentication-manager>-->
+    
+    
+    <!--    <beans:bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <beans:property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        <beans:property name="url" value="jdbc:myssql://localhost:3306/fitnessTracker"/>
+        <beans:property name="username" value="root"/>
+        <beans:property name="password" value="mindfire"/>
+    </beans:bean>-->
+   
+</beans:beans>
